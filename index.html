@@ -1,20 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta charset="utf-8">
-<title>Absensi Desa</title>
+<meta charset="UTF-8">
+<title>Absensi Digital</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial;background:#f2f2f2;padding:20px}
-.card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px}
-input,select,button{padding:6px;margin:4px}
+body{font-family:system-ui;background:#eef2f7;margin:0;padding:15px}
+h2{text-align:center}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc}
+button{background:#2563eb;color:white;border:none;font-weight:bold}
+button:hover{opacity:.9}
+#video{width:100%;border-radius:12px}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px;border-bottom:1px solid #eee;text-align:center}
 </style>
 </head>
 <body>
 
-<h2>📋 Absensi Perangkat Desa</h2>
+<h2>📷 Absensi QR Digital</h2>
 
 <div class="card">
-<input id="id" placeholder="ID">
+<video id="video" autoplay></video>
+<select id="type">
+<option value="Masuk">Masuk</option>
+<option value="Pulang">Pulang</option>
+</select>
+<button onclick="startScan()">Scan QR</button>
+</div>
+
+<div class="card">
+<h3>Tambah Karyawan</h3>
+<input id="id" placeholder="ID QR">
 <input id="nama" placeholder="Nama">
 <input id="jabatan" placeholder="Jabatan">
 <input id="alamat" placeholder="Alamat">
@@ -22,52 +39,62 @@ input,select,button{padding:6px;margin:4px}
 </div>
 
 <div class="card">
-<input id="scanId" placeholder="ID Karyawan">
-<select id="type">
-<option value="masuk">Masuk</option>
-<option value="pulang">Pulang</option>
-</select>
-<button onclick="scan()">Scan</button>
-</div>
-
-<div class="card">
-<button onclick="load()">Tampilkan Data</button>
-<pre id="out"></pre>
+<h3>Rekap Hari Ini</h3>
+<button onclick="loadRekap()">Muat Rekap</button>
+<table id="tbl"></table>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyFaKC0c7sQROkE9_Rw1evMVw1xtUDuLa8Ht-Rj-Ua5avb3kudCNfKHYKkJjayzrZzeoA/exec";
+const API = "https://script.google.com/macros/s/AKfycbxoPWU_T2kJtMcydcmLAsDgu2gcdJoja5XXo_Lz4hZMsK-4P2XHwsnYVdInRAVG0S4ezw/exec";
+let stream;
 
-function post(action,payload={}){
- const form = new FormData();
- form.append("data", JSON.stringify({action,...payload}));
+function post(action,data={}){
+ const f=new FormData();
+ f.append("data",JSON.stringify({action,...data}));
+ return fetch(API,{method:"POST",body:f}).then(r=>r.json());
+}
 
- return fetch(API,{method:"POST",body:form})
-        .then(r=>r.json());
+async function startScan(){
+ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+ video.srcObject = stream;
+
+ const canvas=document.createElement("canvas");
+ const ctx=canvas.getContext("2d");
+
+ setInterval(()=>{
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  ctx.drawImage(video,0,0);
+  const img=canvas.toDataURL();
+  decodeQR(img);
+ },1200);
+}
+
+function decodeQR(img){
+ const qr = window.qrcode?.decode(img);
+ if(qr){
+   stream.getTracks()[0].stop();
+   post("SCAN",{id:qr,type:type.value}).then(r=>alert(r.msg));
+ }
 }
 
 function save(){
- post("SAVE",{
-   id:id.value,
-   nama:nama.value,
-   jabatan:jabatan.value,
-   alamat:alamat.value
- }).then(r=>alert(r.msg));
+ post("SAVE",{id:id.value,nama:nama.value,jabatan:jabatan.value,alamat:alamat.value})
+   .then(r=>alert(r.msg));
 }
 
-function scan(){
- post("SCAN",{
-   id:scanId.value,
-   type:type.value
- }).then(r=>alert(r.msg));
-}
-
-function load(){
- post("GET").then(r=>{
-   out.textContent = JSON.stringify(r,null,2);
+function loadRekap(){
+ const d=new Date().toISOString().split("T")[0];
+ post("REKAP",{date:d}).then(r=>{
+   let h="<tr><th>ID</th><th>Nama</th><th>Status</th><th>Jam</th></tr>";
+   r.forEach(x=>h+=`<tr><td>${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td>${x[4]}</td></tr>`);
+   tbl.innerHTML=h;
  });
 }
 </script>
+
+<!-- QR decoder lib -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 </body>
 </html>
