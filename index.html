@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Absensi Desa</title>
+<style>
+body{font-family:Arial;background:#f2f2f2;padding:20px}
+.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px}
+input,select,button{padding:6px;margin:5px}
+</style>
+</head>
+<body>
+
+<h2>Absensi Perangkat Desa</h2>
+
+<div class="card">
+<input id="id" placeholder="ID">
+<input id="nama" placeholder="Nama">
+<input id="jabatan" placeholder="Jabatan">
+<input id="alamat" placeholder="Alamat">
+<button onclick="save()">Simpan Karyawan</button>
+</div>
+
+<div class="card">
+<input id="scanId" placeholder="ID">
+<select id="type">
+<option value="masuk">Masuk</option>
+<option value="pulang">Pulang</option>
+</select>
+<button onclick="scan()">Scan</button>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbzQ8Uf3sly6iECuKnEhCqrWdHbTk4dZxo8Lk4Zb4CX2TKMQ0DsUOe9l5lwOp2eUVOXxcQ/exec";
+
+function post(action,data={}){
+ return fetch(API,{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({action,...data})
+ }).then(r=>r.json())
+}
+
+function save(){
+ post("SAVE",{
+  id:id.value,
+  nama:nama.value,
+  jabatan:jabatan.value,
+  alamat:alamat.value
+ }).then(a=>alert(a.msg))
+}
+
+function scan(){
+ post("SCAN",{
+  id:scanId.value,
+  type:type.value
+ }).then(a=>alert(a.msg))
+}
+</script>
+
+</body>
+</html>
